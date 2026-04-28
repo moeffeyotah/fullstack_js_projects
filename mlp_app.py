@@ -25,8 +25,8 @@ st.caption("Designed by Moses Effeyotah | INFO-6144 Web Development")
 selected_date = st.date_input("Select Game Date", datetime.now())
 date_str = selected_date.strftime("%Y-%m-%d")
 
-# --- API LOGIC (Mirroring your index.html fetch) ---
-@st.cache_data(ttl=3600) # Caches data for 1 hour to optimize performance
+# --- API LOGIC ---
+@st.cache_data(ttl=3600)
 def get_mlb_games(date):
     url = f"https://statsapi.mlb.com/api/v1/schedule/games/?sportId=1&date={date}"
     response = requests.get(url).json()
@@ -48,28 +48,31 @@ else:
 
     with col2:
         st.subheader("🎬 Highlights")
-        # Fetching content for selected gamePk
         content_url = f"https://statsapi.mlb.com/api/v1/game/{selected_game_pk}/content"
         content = requests.get(content_url).json()
         
-        highlights = content.get("highlights", {}).get("highlights", {}).get("items", [])
+        highlights_items = content.get("highlights", {}).get("highlights", {}).get("items", [])
         
-        if highlights:
-            for item in highlights[:8]: # Top 8 highlights
-                headline = item.get('headline', 'Great Play!')
-                description = item.get('description', 'No description provided.')
-                with st.expander(f"▶️ {item['headline']}"):
-                    st.write(item['description'])
+        if highlights_items:
+            for item in highlights_items[:8]:
+                # Using .get() ensures the app doesn't crash if a field is missing
+                safe_headline = item.get('headline', 'Great Play!')
+                safe_description = item.get('description', 'No description provided.')
+                
+                with st.expander(f"▶️ {safe_headline}"):
+                    st.write(f"*{safe_description}*")
+                    
                     playbacks = item.get('playbacks', [])
                     video_url = None
-                
+                    
                     if playbacks:
-                    # Logic: Find the first playback URL that contains '.mp4'
+                        # Find the first playback URL that contains '.mp4'
                         for p in playbacks:
-                            if ".mp4" in p.get('url', ''):
-                                video_url = p['url']
+                            url = p.get('url', '')
+                            if ".mp4" in url:
+                                video_url = url
                                 break
-                
+                    
                     if video_url:
                         st.video(video_url)
                     else:
