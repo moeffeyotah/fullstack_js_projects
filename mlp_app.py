@@ -55,7 +55,9 @@ else:
         highlights = content.get("highlights", {}).get("highlights", {}).get("items", [])
         
         if highlights:
-            for item in highlights[:5]: # Top 5 highlights
+            for item in highlights[:8]: # Top 8 highlights
+                headline = item.get('headline', 'Great Play!')
+            description = item.get('description', 'No description provided.')
                 with st.expander(f"▶️ {item['headline']}"):
                     st.write(item['description'])
                     video_url = item['playbacks'][0]['url'] # Using playback index 0 as per your JS logic
