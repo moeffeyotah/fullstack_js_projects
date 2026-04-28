@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>INFO6144 Project 1 - MLB Game & Highlight Viewer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3ff6;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px; /* Tailwind's full rounded */
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+    </style>
+    <!-- STUDENT INFORMATION BLOCK - DO NOT REMOVE -->
+    <!--
+        Course: INFO 6144 - Web Development
+        Project: Project 1 - MLB Game & Highlight Viewer
+        Student Name: Moses Effeyotah
+        Student ID: 1334675
+        Date Submitted: 2025-10-20 (Due Date: 2025-10-24)
+        Description: Single-file web application that retrieves the daily MLB game schedule 
+                     and video highlights for selected games using the MLB Stats API (statsapi.mlb.com).
+    -->
+</head>
+<body class="p-4 min-h-screen">
+    <div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-2xl border border-gray-200">
+        <h1 class="text-3xl font-extrabold mb-6 text-gray-800 border-b pb-2">Project #1: MLB Highlight Form</h1>
+        
+        <!-- Date Selection Card -->
+        <div class="mb-8 p-6 bg-blue-50 rounded-lg border border-blue-200 shadow-inner">
+            <p class="text-lg font-semibold mb-3 text-blue-800">1. Select Date & Retrieve Schedule</p>
+
+            <div class="flex flex-wrap items-end gap-4 mb-4">
+                <div>
+                    <label for="selYear" class="block text-sm font-medium text-gray-700">Year (1994-2025):</label>
+                    <select id="selYear" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 rounded-md"></select>
+                </div>
+                <div>
+                    <label for="selMonth" class="block text-sm font-medium text-gray-700">Month:</label>
+                    <select id="selMonth" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 rounded-md"></select>
+                </div>
+                <div>
+                    <label for="selDay" class="block text-sm font-medium text-gray-700">Day:</label>
+                    <select id="selDay" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 rounded-md"></select>
+                </div>
+            </div>
+
+            <button id="btnRetrieve" class="w-full sm:w-auto mt-2 px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-lg text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150">
+                Retrieve MLB Data for this Date
+            </button>
+        </div>
+
+        <!-- Game Navigation & Details -->
+        <div class="mb-8 p-6 bg-gray-100 rounded-lg border border-gray-300 shadow-md">
+            <p class="text-lg font-semibold mb-3 text-gray-800">2. Game Navigation</p>
+            
+            <p class="mb-3 text-xl font-bold text-gray-700">
+                Current Game: 
+                <span id="team-names" class="text-blue-600 font-extrabold">Awaiting Data...</span>
+                <span id="game-status" class="status-badge ml-3"></span>
+            </p>
+            <p class="text-sm text-gray-500 mb-4">Game <span id="current-game-count" class="font-bold">0</span> of <span id="total-games-count" class="font-bold">0</span></p>
+
+            <div class="flex justify-between space-x-4">
+                <button id="btnPreviousGame" disabled class="flex-1 px-4 py-2 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white border hover:bg-gray-200 transition duration-150 disabled:opacity-50">
+                    &larr; Previous Game
+                </button>
+                <button id="btnNextGame" disabled class="flex-1 px-4 py-2 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white border hover:bg-gray-200 transition duration-150 disabled:opacity-50">
+                    Next Game &rarr;
+                </button>
+            </div>
+        </div>
+
+        <!-- Highlight Navigation & Video Playback -->
+        <div id="highlight-section" class="p-6 border border-gray-200 rounded-xl shadow-lg bg-white">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800 border-b pb-2">Highlight Playback</h2>
+            
+            <p class="mb-3 text-lg"><span class="font-bold text-gray-600">Headline:</span> <span id="highlight-headline" class="text-red-600 font-semibold italic">No highlights loaded.</span></p>
+            <p class="text-sm text-gray-500 mb-4">Highlight <span id="current-highlight-count" class="font-bold">0</span> of <span id="total-highlights-count" class="font-bold">0</span></p>
+
+            <div class="grid grid-cols-3 gap-3">
+                <button id="btnPreviousHighlight" disabled class="col-span-1 px-3 py-2 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white border hover:bg-gray-200 transition duration-150 disabled:opacity-50">
+                    &larr; Prev Highlight
+                </button>
+                
+                <button id="btnPlayVideo" disabled class="col-span-1 px-3 py-2 text-sm font-medium rounded-md shadow-lg text-white bg-red-600 hover:bg-red-700 transition duration-150 disabled:opacity-50">
+                    Play Video (MP4)
+                </button>
+                
+                <button id="btnNextHighlight" disabled class="col-span-1 px-3 py-2 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white border hover:bg-gray-200 transition duration-150 disabled:opacity-50">
+                    Next Highlight &rarr;
+                </button>
+            </div>
+        </div>
+        
+        <!-- API References Section -->
+        <div class="mt-8 p-4 text-xs text-gray-500 border-t pt-4">
+            <h3 class="font-bold text-gray-700 mb-1">API & Data Source Reference</h3>
+            <p>Game data and highlights are retrieved from the unofficial, public MLB Stats API:</p>
+            <ul class="list-disc pl-4 mt-1">
+                <li>Schedule API Endpoint: <span class="font-mono">https://statsapi.mlb.com/api/v1/schedule/games/</span></li>
+                <li>Game Content API Endpoint: <span class="font-mono">https://statsapi.mlb.com/api/v1/game/[gamePk]/content</span></li>
+            </ul>
+        </div>
+    </div>
+
+<script>
+    let jsObject = null;
+    let gameIndex = 0;
+    let highlightIndex = 0;
+    let currentHighlights = [];
+
+    const GAME_CONTENT_URL = "https://statsapi.mlb.com/api/v1/game/[gamePk]/content";
+    
+    /**
+     * Initializes the application on window load by setting up event handlers and UI state.
+     */
+    window.onload = function(){
+        document.getElementById("btnRetrieve").onclick = retrieveMLBData;
+        document.getElementById("btnNextGame").onclick = nextGame;
+        document.getElementById("btnPreviousGame").onclick = previousGame;
+        document.getElementById("btnNextHighlight").onclick = nextHighlight;
+        document.getElementById("btnPreviousHighlight").onclick = previousHighlight;
+        document.getElementById("btnPlayVideo").onclick = playVideo;
+        
+        populateDropdowns();
+        updateGameControls();
+        updateHighlightControls();
+    };
+
+    /**
+     * Fills the year, month, and day dropdowns with required values (1994-2025, 01-12, 01-31)
+     * and sets the default date (March 14, 2023).
+     */
+    function populateDropdowns(){
+        let yearList = document.getElementById("selYear");
+        // Extend year list to include 1994 for default setting
+        for (let i = 1994; i <= 2025; i++) {
+            yearList.options[yearList.options.length] = new Option(i, i);
+        }
+
+        let monthList = document.getElementById("selMonth");
+        for (let i = 1; i <= 12; i++){
+            let paddedValue = i.toString().padStart(2, '0');
+            monthList.options[monthList.options.length] = new Option(paddedValue, paddedValue);
+        }
+
+        let dayList = document.getElementById("selDay");
+        for (let i = 1; i <= 31; i++){
+            let paddedValue = i.toString().padStart(2, '0');
+            dayList.options[dayList.options.length] = new Option(paddedValue, paddedValue);
+        }
+        
+        // Set default date to March 14th, 2023 (Pi Day)
+        document.getElementById("selYear").value = "2023";
+        document.getElementById("selMonth").value = "03";
+        document.getElementById("selDay").value = "14"; 
+    }
+
+    /**
+     * Uses the modern 'fetch' API with async/await to retrieve the MLB schedule 
+     * based on the selected date from the pulldowns.
+     * @returns {Promise<void>}
+     */
+    async function retrieveMLBData(){
+        const y = document.getElementById("selYear").value;
+        const m = document.getElementById("selMonth").value;
+        const d = document.getElementById("selDay").value;
+        const dateString = `${y}-${m}-${d}`;
+
+        const url = `http://statsapi.mlb.com/api/v1/schedule/games/?sportId=1&startDate=${dateString}&endDate=${dateString}`;
+
+        document.getElementById("team-names").innerHTML = "Fetching schedule...";
+        document.getElementById("game-status").className = "status-badge bg-yellow-400 text-yellow-900";
+        document.getElementById("game-status").textContent = "Loading...";
+
+        try {
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            jsObject = await response.json();
+            gameIndex = 0;
+            
+            const hasGames = jsObject.dates && jsObject.dates.length > 0 && jsObject.dates[0].games.length > 0;
+
+            if (hasGames) {
+                displayGameData();
+            } else {
+                jsObject = null;
+                document.getElementById("team-names").innerHTML = "No MLB Games found for this date.";
+                document.getElementById("total-games-count").textContent = 0;
+                document.getElementById("current-game-count").textContent = 0;
+                document.getElementById("game-status").className = "status-badge bg-gray-300 text-gray-700";
+                document.getElementById("game-status").textContent = "N/A";
+                updateGameControls();
+                clearHighlightData();
+            }
+
+        } catch (error) {
+            console.error("Fetch Schedule Error:", error);
+            document.getElementById("team-names").innerHTML = `<span class="text-red-600 font-bold">Error fetching schedule data.</span>`;
+            document.getElementById("game-status").className = "status-badge bg-red-500 text-white";
+            document.getElementById("game-status").textContent = "ERROR";
+        }
+    }
+
+    /**
+     * Displays the home and away team names for the currently selected game.
+     * Triggers the retrieval of highlights for that game.
+     */
+    function displayGameData(){
+        clearHighlightData(); 
+
+        const games = jsObject?.dates?.[0]?.games;
+        if (!games || games.length === 0) {
+            document.getElementById("team-names").innerHTML = "No game data available.";
+            document.getElementById("game-status").className = "status-badge bg-gray-300 text-gray-700";
+            document.getElementById("game-status").textContent = "N/A";
+            updateGameControls();
+            return;
+        }
+
+        const currentGame = games[gameIndex];
+
+        // Display Game Status with conditional color
+        const status = currentGame.status.detailedState;
+        let statusClass = '';
+        if (status === 'Final') {
+            statusClass = 'bg-green-500 text-white';
+        } else if (status === 'In Progress') {
+            statusClass = 'bg-red-500 text-white animate-pulse';
+        } else {
+            statusClass = 'bg-yellow-500 text-gray-900';
+        }
+        document.getElementById("game-status").className = `status-badge ${statusClass}`;
+        document.getElementById("game-status").textContent = status.toUpperCase();
+
+        const homeTeamName = currentGame.teams.home.team.name;
+        const awayTeamName = currentGame.teams.away.team.name;
+        document.getElementById("team-names").innerHTML = `${awayTeamName} at ${homeTeamName}`;
+        
+        document.getElementById("current-game-count").textContent = gameIndex + 1;
+        document.getElementById("total-games-count").textContent = games.length;
+
+        updateGameControls();
+        
+        // Retrieve the second JSON string for highlights
+        retrieveGameContent(currentGame.gamePk);
+    }
+    
+    /**
+     * Enables/disables the Next and Previous Game buttons based on the current game index.
+     */
+    function updateGameControls() {
+        const games = jsObject?.dates?.[0]?.games;
+        const count = games ? games.length : 0;
+        
+        document.getElementById("btnPreviousGame").disabled = (gameIndex <= 0 || count === 0);
+        document.getElementById("btnNextGame").disabled = (gameIndex >= count - 1 || count === 0);
+    }
+
+    /**
+     * Increments the game index and displays the next game's data.
+     */
+    function nextGame(){
+        const games = jsObject.dates[0].games;
+        if (gameIndex < games.length - 1){
+            gameIndex++;
+            displayGameData();
+        }
+    }
+
+    /**
+     * Decrements the game index and displays the previous game's data.
+     */
+    function previousGame(){
+        if(gameIndex > 0){
+            gameIndex--;
+            displayGameData()
+        }
+    }
+
+    /**
+     * Fetches the highlights JSON using the gamePk from the MLB content endpoint.
+     * @param {number} gamePk - The unique ID for the currently selected game.
+     * @returns {Promise<void>}
+     */
+    async function retrieveGameContent(gamePk){
+        const url = GAME_CONTENT_URL.replace("[gamePk]", gamePk);
+
+        document.getElementById("highlight-headline").innerHTML = 'Loading highlights...';
+
+        try {
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const contentData = await response.json();
+            
+            // Drill down: highlights -> highlights -> items
+            currentHighlights = contentData.highlights?.highlights?.items || [];
+            highlightIndex = 0;
+            displayHighlightData();
+
+        } catch (e) {
+            console.error("Fetch Content Error:", e);
+            currentHighlights = [];
+            document.getElementById("highlight-headline").innerHTML = `<span class="text-red-500">Error: Highlights unavailable or API issue.</span>`;
+            displayHighlightData();
+        }
+    }
+
+    /**
+     * Updates the highlight display area with the headline for the current highlightIndex.
+     */
+    function displayHighlightData() {
+        const totalHighlights = currentHighlights.length;
+
+        document.getElementById("total-highlights-count").textContent = totalHighlights;
+        
+        if (totalHighlights > 0) {
+            const currentItem = currentHighlights[highlightIndex];
+            
+            // Required: Display the first highlight name/headline
+            document.getElementById("highlight-headline").textContent = currentItem.headline;
+            
+            document.getElementById("current-highlight-count").textContent = highlightIndex + 1;
+
+        } else {
+            document.getElementById("highlight-headline").textContent = "No highlights found for this game.";
+            document.getElementById("current-highlight-count").textContent = 0;
+        }
+
+        updateHighlightControls();
+    }
+    
+    /**
+     * Enables/disables the Next/Previous Highlight and Play Video buttons.
+     */
+    function updateHighlightControls() {
+        const count = currentHighlights.length;
+        
+        document.getElementById("btnPreviousHighlight").disabled = (highlightIndex <= 0 || count === 0);
+        document.getElementById("btnNextHighlight").disabled = (highlightIndex >= count - 1 || count === 0);
+        document.getElementById("btnPlayVideo").disabled = (count === 0);
+    }
+
+    /**
+     * Increments the highlight index and updates the display.
+     */
+    function nextHighlight(){
+        if (highlightIndex < currentHighlights.length - 1){
+            highlightIndex++;
+            displayHighlightData();
+        }
+    }
+
+    /**
+     * Decrements the highlight index and updates the display.
+     */
+    function previousHighlight(){
+        if(highlightIndex > 0){
+            highlightIndex--;
+            displayHighlightData()
+        }
+    }
+
+    /**
+     * Opens the MP4 video URL (from playbacks[0].url) in a new browser tab.
+     */
+    function playVideo(){
+        if (currentHighlights.length === 0) return;
+
+        try {
+            const currentItem = currentHighlights[highlightIndex];
+            
+            // Required: Use playbacks[0].url for the MP4 video
+            const videoUrl = currentItem.playbacks?.[0]?.url;
+
+            if (videoUrl) {
+                window.open(videoUrl, '_blank').focus();
+            } else {
+                document.getElementById("highlight-headline").textContent = "Video URL not found for this highlight.";
+            }
+        } catch (e) {
+            document.getElementById("highlight-headline").textContent = "An error occurred while trying to play the video.";
+        }
+    }
+
+    /**
+     * Resets all highlight-related data and UI elements.
+     */
+    function clearHighlightData() {
+        currentHighlights = [];
+        highlightIndex = 0;
+        document.getElementById("highlight-headline").innerHTML = 'Select a date and game.';
+        document.getElementById("current-highlight-count").textContent = 0;
+        document.getElementById("total-highlights-count").textContent = 0;
+        updateHighlightControls();
+    }
+</script>
+</body>
+</html>
