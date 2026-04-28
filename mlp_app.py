@@ -57,13 +57,25 @@ else:
         if highlights:
             for item in highlights[:8]: # Top 8 highlights
                 headline = item.get('headline', 'Great Play!')
-            description = item.get('description', 'No description provided.')
+                description = item.get('description', 'No description provided.')
                 with st.expander(f"▶️ {item['headline']}"):
                     st.write(item['description'])
-                    video_url = item['playbacks'][0]['url'] # Using playback index 0 as per your JS logic
-                    st.video(video_url)
+                    playbacks = item.get('playbacks', [])
+                    video_url = None
+                
+                    if playbacks:
+                    # Logic: Find the first playback URL that contains '.mp4'
+                        for p in playbacks:
+                            if ".mp4" in p.get('url', ''):
+                                video_url = p['url']
+                                break
+                
+                    if video_url:
+                        st.video(video_url)
+                    else:
+                        st.warning("Video playback format not supported for this clip.")
         else:
-            st.info("No video highlights available for this game yet.")
+            st.info("No video highlights available for this game yet. Check back after the first pitch!")
 
 # --- FOOTER ---
 st.write("---")
